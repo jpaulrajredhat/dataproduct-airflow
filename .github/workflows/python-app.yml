@@ -1,0 +1,48 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Deploy to S3
+
+on:
+  push:
+    branches:
+      - main  # adjust this to your main branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy to MinIO Bucket
+        env:
+          MC_DEBUG: 1
+        run: |
+          # Set up MinIO client (mc)
+          wget https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          
+          # Configure MinIO client with access credentials
+          ./mc alias set oscicd ${{secrets.S3_URL}} ${{ secrets.AWS_ACCESS_KEY_ID }} ${{ secrets.AWS_SECRET_ACCESS_KEY }} --insecure --api S3v4
+          
+          # Copy files to MinIO bucket
+          # ./mc mirror ./dags/ oscicd/airflow/release/dags --insecure 
+          # ./mc mirror --remove --overwrite ./dags/ oscicd/airflow/release/dags --insecure
+          ./mc mirror --remove --overwrite ./dags/ oscicd/airflow/dags --insecure
+          # ./mc mirror ./dags/ oscicd/airflow/dags --insecure 
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: 
+
+      # - name: Deploy to S3
+      #   uses: aws-actions/amazon-s3-deploy@v0.1.1
+      #   with:
+      #     args: --acl public-read --follow-symlinks --delete
+      #     bucket-name: airflow/release/dags
+      #     local-dir: dags
+      #     include: '*.py, *.ipynb'
+      #     exclude: '*.tmp, config.yml'
