@@ -146,8 +146,16 @@ def transform_and_upload():
     )
 
     # Read XLS file from S3 into memory
-    response = s3.get_object(Bucket=S3_BUCKET, Key=RAW_XLS_KEY)
-    df = pd.read_excel(response["Body"], engine="openpyxl")
+    # response = s3.get_object(Bucket=S3_BUCKET, Key=RAW_XLS_KEY)
+    # df = pd.read_excel(response["Body"], engine="openpyxl")
+    
+    # download to memory buffer
+    obj = s3.get_object(Bucket=S3_BUCKET, Key=RAW_XLS_KEY)
+    buffer = io.BytesIO(obj["Body"].read())
+
+    # now Pandas can safely read it
+    df = pd.read_excel(buffer, engine="openpyxl")
+
 
     # Apply your transformations
     df = apply_transform_rules(df)
@@ -155,16 +163,17 @@ def transform_and_upload():
 
     # Convert to Parquet in-memory
     table = pa.Table.from_pandas(df)
-    buffer = io.BytesIO()
-    pq.write_table(table, buffer)
-    buffer.seek(0)  # Reset pointer to the start
+    parquet_buffer = io.BytesIO()
+    pq.write_table(table, parquet_buffer)
+    parquet_buffer.seek(0)  # Reset pointer to the start
+
 
     # Ensure bucket exists
     if S3_BUCKET not in [b["Name"] for b in s3.list_buckets()["Buckets"]]:
         s3.create_bucket(Bucket=S3_BUCKET)
 
     # Upload Parquet directly from buffer
-    s3.upload_fileobj(buffer, S3_BUCKET, PARQUET_S3_KEY)
+    s3.upload_fileobj(parquet_buffer, S3_BUCKET, PARQUET_S3_KEY)
     print(f"Uploaded Parquet to s3://{S3_BUCKET}/{PARQUET_S3_KEY}")
 
 def insert_into_iceberg():
