@@ -16,9 +16,10 @@ import io
 S3_CONN_ID = "s3"        # <-- Airflow Connection ID for MinIO (type: S3)
 RAW_XLS = os.path.join(os.environ.get("AIRFLOW_HOME", "/opt/airflow"), "dags", "data", "single_family.xlsx")
 PARQUET_FILE = os.path.join(os.environ.get("AIRFLOW_HOME", "/opt/airflow"), "dags", "data", "single_family.parquet")
-S3_BUCKET = "audit"
+S3_BUCKET = "mortgage"
 S3_KEY = "single_family.parquet"
-
+RAW_XLS_KEY = "raw-data/single_family/single_family.xlsx"
+PARQUET_S3_KEY = "processed-data/single_family.parquet"
 # -------- Required Columns -------- #
 REQUIRED_COLUMNS = [
     "Reference Pool ID", "Loan Identifier", "Monthly Reporting Period", "Channel",
@@ -100,7 +101,7 @@ def pandas_schema_to_iceberg(df):
     return ",\n".join(schema_lines)
 
 # -------- Core Tasks -------- #
-def transform_and_upload():
+def transform_and_upload_xls():
     conn = BaseHook.get_connection(S3_CONN_ID)
     extra = conn.extra_dejson
     endpoint_url = extra.get("endpoint_url")
@@ -130,6 +131,41 @@ def transform_and_upload():
     s3.upload_file(PARQUET_FILE, S3_BUCKET, S3_KEY)
     # Upload buffer directly to s3 instead from file
     # s3.upload_fileobj(buffer, S3_BUCKET, S3_KEY)
+def transform_and_upload():
+    # Get S3 connection
+    conn = BaseHook.get_connection("S3_CONN_ID")
+    extra = conn.extra_dejson
+    endpoint_url = extra.get("endpoint_url")
+
+    # Read XLS directly from MinIO S3
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
+    )
+
+    # Read XLS file from S3 into memory
+    response = s3.get_object(Bucket=S3_BUCKET, Key=RAW_XLS_KEY)
+    df = pd.read_excel(response["Body"], engine="openpyxl")
+
+    # Apply your transformations
+    df = apply_transform_rules(df)
+    df = apply_transformations(df)
+
+    # Convert to Parquet in-memory
+    table = pa.Table.from_pandas(df)
+    buffer = io.BytesIO()
+    pq.write_table(table, buffer)
+    buffer.seek(0)  # Reset pointer to the start
+
+    # Ensure bucket exists
+    if S3_BUCKET not in [b["Name"] for b in s3.list_buckets()["Buckets"]]:
+        s3.create_bucket(Bucket=S3_BUCKET)
+
+    # Upload Parquet directly from buffer
+    s3.upload_fileobj(buffer, S3_BUCKET, PARQUET_S3_KEY)
+    print(f"Uploaded Parquet to s3://{S3_BUCKET}/{PARQUET_S3_KEY}")
 
 def insert_into_iceberg():
     conn = connect(host="trino", port=8081, user="admin", catalog="iceberg")
@@ -161,7 +197,7 @@ def insert_into_iceberg():
 
 # -------- DAG Definition -------- #
 with DAG(
-    "single_family_pipeline_lineage",
+    "single_family_mortgage_delinquent_pipeline",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,

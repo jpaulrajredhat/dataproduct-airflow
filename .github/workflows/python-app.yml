@@ -30,6 +30,7 @@ jobs:
           # ./mc mirror ./dags/ oscicd/airflow/release/dags --insecure 
           # ./mc mirror --remove --overwrite ./dags/ oscicd/airflow/release/dags --insecure
           ./mc mirror --remove --overwrite ./dags/ oscicd/airflow/dags --insecure
+          ./mc mirror --remove --overwrite ./mortgage/ oscicd/mortgage --insecure
       # - name: Configure AWS credentials
       #   uses: aws-actions/configure-aws-credentials@v1
       #   with:
