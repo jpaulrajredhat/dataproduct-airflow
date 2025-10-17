@@ -177,7 +177,7 @@ def transform_and_upload():
     print(f"Uploaded Parquet to s3://{S3_BUCKET}/{PARQUET_S3_KEY}")
 
 def insert_into_iceberg():
-    conn = connect(host="trino", port=8081, user="admin", catalog="iceberg")
+    conn = connect(host="trino", port=8080, user="admin", catalog="iceberg")
     cursor = conn.cursor()
     cursor.execute("CREATE SCHEMA IF NOT EXISTS iceberg.single_family")
 
