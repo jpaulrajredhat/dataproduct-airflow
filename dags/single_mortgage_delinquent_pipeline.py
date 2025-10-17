@@ -133,7 +133,7 @@ def transform_and_upload_xls():
     # s3.upload_fileobj(buffer, S3_BUCKET, S3_KEY)
 def transform_and_upload():
     # Get S3 connection
-    conn = BaseHook.get_connection("S3_CONN_ID")
+    conn = BaseHook.get_connection(S3_CONN_ID)
     extra = conn.extra_dejson
     endpoint_url = extra.get("endpoint_url")
 
