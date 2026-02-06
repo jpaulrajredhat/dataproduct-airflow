@@ -25,7 +25,7 @@ def generate_insert_sql(table_name, n_rows=10):
         merchant_id = f"MERCH-{random.randint(10000, 99999)}"
         currency = random.choice(['USD', 'EUR', 'GBP', 'INR'])
         city = fake.city().replace("'", "")
-        country = fake.country().replace("'", "")
+        country = fake.country_code().replace("'", "")
         fraud_flag = random.choices([0, 1], weights=[98, 2])[0]  # 2% fraud probability
 
         values.append(
