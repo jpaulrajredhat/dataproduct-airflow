@@ -13,8 +13,22 @@ merchant_categories = ['RESTAURANTS', 'ELECTRONICS', 'TRAVEL', 'FUEL', 'GROCERY'
 
 # Function to generate SQL for synthetic credit card transactions
 def generate_insert_sql(table_name, n_rows=10):
+    region_map = {
+        "UE": {"countries": ["DE", "FR", "IT", "ES"], "currency": "EUR"},
+        "IN": {"countries": ["IN"], "currency": "INR"},
+        "NA": {"countries": ["US", "CA", "MX"], "currency": "USD"}
+    }
     values = []
     for _ in range(n_rows):
+
+        # 1. Randomly pick one of your three regions
+        reg_code = random.choice(["UE", "IN", "NA"])
+        region_data = region_map[reg_code]
+        
+        # 2. Pick a country and currency based on that region
+        country = random.choice(region_data["countries"])
+        currency = region_data["currency"]
+        
         transaction_date = fake.date_between(start_date='-2y', end_date='today')
         t_type = random.choice(transaction_types)
         merchant = random.choice(merchant_categories)
@@ -23,21 +37,21 @@ def generate_insert_sql(table_name, n_rows=10):
         customer_id = fake.uuid4()
         account_id = f"ACCT-{random.randint(100000, 999999)}"
         merchant_id = f"MERCH-{random.randint(10000, 99999)}"
-        currency = random.choice(['USD', 'EUR', 'GBP', 'INR'])
+        # currency = random.choice(['USD', 'EUR', 'GBP', 'INR'])
         city = fake.city().replace("'", "")
-        country = fake.country_code().replace("'", "")
+        # country = fake.country_code().replace("'", "")
         fraud_flag = random.choices([0, 1], weights=[98, 2])[0]  # 2% fraud probability
 
         values.append(
             f"('{transaction_date}', '{t_type}', '{merchant}', {amount}, '{currency}', "
-            f"'{card_number}', '{customer_id}', '{account_id}', '{merchant_id}', '{city}', '{country}', {fraud_flag})"
+            f"'{card_number}', '{customer_id}', '{account_id}', '{merchant_id}', '{city}', '{country}', '{reg_code}', {fraud_flag})"
         )
 
     values_str = ",\n".join(values)
     return f"""
     INSERT INTO {table_name} (
         transaction_date, transaction_type, merchant_category, amount, currency,
-        card_number, customer_id, account_id, merchant_id, city, country, fraud_flag
+        card_number, customer_id, account_id, merchant_id, city, country, region , fraud_flag
     )
     VALUES
     {values_str};
@@ -60,7 +74,8 @@ CREATE TABLE IF NOT EXISTS credit_card_center_1 (
     account_id VARCHAR(32),
     merchant_id VARCHAR(32),
     city VARCHAR(64),
-    country VARCHAR(64),
+    country VARCHAR(2),
+    region VARCHAR(2),
     fraud_flag SMALLINT
 );
 """
@@ -77,7 +92,8 @@ CREATE TABLE IF NOT EXISTS credit_card_center_2 (
     account_id VARCHAR(32),
     merchant_id VARCHAR(32),
     city VARCHAR(64),
-    country VARCHAR(64),
+    country VARCHAR(2),
+    region VARCHAR(2),
     fraud_flag SMALLINT
 );
 """
@@ -94,7 +110,8 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions_combined (
     account_id VARCHAR(32),
     merchant_id VARCHAR(32),
     city VARCHAR(64),
-    country VARCHAR(64),
+    country VARCHAR(2),
+    region VARCHAR(2),
     fraud_flag SMALLINT
 );
 """
@@ -103,7 +120,7 @@ CREATE TABLE IF NOT EXISTS credit_card_transactions_combined (
 combine_data_sql = """
 INSERT INTO credit_card_transactions_combined (
     transaction_date, transaction_type, merchant_category, amount, currency,
-    card_number, customer_id, account_id, merchant_id, city, country, fraud_flag
+    card_number, customer_id, account_id, merchant_id, city, country, region ,fraud_flag
 )
 SELECT * FROM credit_card_center_1
 UNION
