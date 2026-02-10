@@ -12,6 +12,14 @@ from airflow.datasets import Dataset
 import os
 import io
 
+import requests
+import urllib3
+from trino.dbapi import connect
+from trino.auth import JWTAuthentication
+
+# Per your setup
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 # -------- Constants -------- #
 S3_CONN_ID = "s3"        # <-- Airflow Connection ID for MinIO (type: S3)
 RAW_XLS = os.path.join(os.environ.get("AIRFLOW_HOME", "/opt/airflow"), "dags", "data", "single_family.xlsx")
@@ -62,6 +70,53 @@ def convert_mm_yyyy_to_date(value):
         return datetime.strptime(str(int(value)), "%m%Y").date().replace(day=1)
     except Exception:
         return None
+
+
+def get_trino_connection(use_keycloak=False):
+    """
+    Utility to switch between standard and Keycloak authentication.
+    """
+    # Standard connection parameters
+    conn_params = {
+        "host": "trino-datamesh.apps.sno.zagaopensource.com",
+        "catalog": "iceberg",
+    }
+
+    if use_keycloak:
+        # 1. Exchange Client Secret for a JWT Token
+        # Update these URLs/Credentials to your environment
+        token_url =  "https://keycloak-oauth-keycloak.apps.sno.zagaopensource.com/realms/sovereign/protocol/openid-connect/token"
+"
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": "trino",
+            "client_secret": "YgKIRgW0f7hQNq0lGpWJ5X9trov1xI7b",
+        }
+        
+        response = requests.post(token_url, data=payload, verify=False)
+        response.raise_for_status()
+        token = response.json().get("access_token")
+
+        # 2. Update params for Secure JWT connection
+        conn_params.update({
+            "port": 8443,
+            "http_scheme": "https",
+            "auth": JWTAuthentication(token),
+            "verify": False
+        })
+    else:
+        # Standard Insecure connection
+        conn_params.update({
+            "port": 8080,
+            "user": "admin",
+            "http_scheme": "http"
+        })
+
+    return connect(**conn_params)
+
+# Usage:
+# conn = get_trino_connection(use_keycloak=True)
+
 
 def apply_transformations(df: pd.DataFrame) -> pd.DataFrame:
     df = df[REQUIRED_COLUMNS].copy()
@@ -177,7 +232,9 @@ def transform_and_upload():
     print(f"Uploaded Parquet to s3://{S3_BUCKET}/{PARQUET_S3_KEY}")
 
 def insert_into_iceberg():
-    conn = connect(host="trino", port=8080, user="admin", catalog="iceberg")
+    # conn = connect(host="trino", port=8080, user="admin", catalog="iceberg")
+    conn = get_trino_connection(use_keycloak=True)
+
     cursor = conn.cursor()
     cursor.execute("CREATE SCHEMA IF NOT EXISTS iceberg.single_family")
 
