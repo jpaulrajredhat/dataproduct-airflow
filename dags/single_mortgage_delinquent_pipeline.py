@@ -120,9 +120,6 @@ def get_trino_connection(use_keycloak=False):
 
     return connect(**conn_params)
 
-# Usage:
-# conn = get_trino_connection(use_keycloak=True)
-
 
 def apply_transformations(df: pd.DataFrame) -> pd.DataFrame:
     df = df[REQUIRED_COLUMNS].copy()
