@@ -89,9 +89,11 @@ def get_trino_connection(use_keycloak=False):
         # Update these URLs/Credentials to your environment
         token_url =  "https://keycloak-oauth-keycloak.apps.sno.zagaopensource.com/realms/sovereign/protocol/openid-connect/token"
         payload = {
-            "grant_type": "client_credentials",
+            "grant_type": "password",
             "client_id": "trino",
             "client_secret": "YgKIRgW0f7hQNq0lGpWJ5X9trov1xI7b",
+            "username": "admin",
+            "password": "Redhat2026$"
         }
         
         response = requests.post(token_url, data=payload, verify=False)
@@ -102,8 +104,8 @@ def get_trino_connection(use_keycloak=False):
         conn_params.update({
             "port": 8443,
             "http_scheme": "https",
-            # "auth": JWTAuthentication(token),
-            "auth": OAuth2Authentication(token),
+            "auth": JWTAuthentication(token),
+            # "auth": OAuth2Authentication(token),
             "verify": False
         })
     else:
