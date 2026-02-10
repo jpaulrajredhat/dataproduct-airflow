@@ -16,6 +16,8 @@ import requests
 import urllib3
 from trino.dbapi import connect
 from trino.auth import JWTAuthentication
+from trino.auth import OAuth2Authentication
+
 
 # Per your setup
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -100,7 +102,8 @@ def get_trino_connection(use_keycloak=False):
         conn_params.update({
             "port": 8443,
             "http_scheme": "https",
-            "auth": JWTAuthentication(token),
+            # "auth": JWTAuthentication(token),
+            "auth": OAuth2Authentication(token),
             "verify": False
         })
     else:
