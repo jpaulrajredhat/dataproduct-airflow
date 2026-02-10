@@ -103,7 +103,7 @@ def get_trino_connection(use_keycloak=False):
 
         # 2. Update params for Secure JWT connection
         conn_params.update({
-            "port": 8443,
+            "port": 443,
             "http_scheme": "https",
             "auth": JWTAuthentication(token),
             # "auth": OAuth2Authentication(token),
