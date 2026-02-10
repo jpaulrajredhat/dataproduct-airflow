@@ -253,19 +253,47 @@ def insert_into_iceberg():
         )
     """)
 
+    # for _, row in df.iterrows():
+    #    values = []
+    #    for val in row:
+    #        if pd.isna(val):
+    #            values.append("NULL")
+    #        elif isinstance(val, str):
+    #            values.append(f"'{val.replace("'", "''")}'")
+    #        elif isinstance(val, pd.Timestamp):
+    #            values.append(f"TIMESTAMP '{val.strftime('%Y-%m-%d %H:%M:%S')}'")
+    #        else:
+    #            values.append(str(val))
+    #    sql = f"INSERT INTO iceberg.single_family.loans VALUES ({','.join(values)})"
+    #    cursor.execute(sql)
+
+    all_rows = []
+
     for _, row in df.iterrows():
         values = []
         for val in row:
             if pd.isna(val):
                 values.append("NULL")
-            elif isinstance(val, str):
-                values.append(f"'{val.replace("'", "''")}'")
-            elif isinstance(val, pd.Timestamp):
-                values.append(f"TIMESTAMP '{val.strftime('%Y-%m-%d %H:%M:%S')}'")
+            elif isinstance(val, (str, pd.Timestamp)):
+                # Escaping single quotes and formatting strings/dates
+                clean_val = str(val).replace("'", "''")
+                values.append(f"'{clean_val}'")
             else:
                 values.append(str(val))
-        sql = f"INSERT INTO iceberg.single_family.loans VALUES ({','.join(values)})"
-        cursor.execute(sql)
+        
+        # Wrap values in parentheses: (val1, val2, ...)
+        all_rows.append(f"({','.join(values)})")
+
+        # 3. Execute as ONE transaction
+        if all_rows:
+            # Join all rows with commas: VALUES (row1), (row2), (row3)
+            insert_sql = f"INSERT INTO iceberg.single_family.loans VALUES {','.join(all_rows)}"
+            
+            try:
+                cursor.execute(insert_sql)
+                print(f"Successfully inserted {len(all_rows)} rows.")
+            except Exception as e:
+                print(f"Insert failed: {e}")
 
 # -------- DAG Definition -------- #
 with DAG(
