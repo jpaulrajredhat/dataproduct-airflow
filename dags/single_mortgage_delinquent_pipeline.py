@@ -82,6 +82,7 @@ def get_trino_connection(use_keycloak=False):
     conn_params = {
         "host": "trino-datamesh.apps.sno.zagaopensource.com",
         "catalog": "iceberg",
+        "schema": "single_family",
     }
 
     if use_keycloak:
