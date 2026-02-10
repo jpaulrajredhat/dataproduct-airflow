@@ -86,7 +86,6 @@ def get_trino_connection(use_keycloak=False):
         # 1. Exchange Client Secret for a JWT Token
         # Update these URLs/Credentials to your environment
         token_url =  "https://keycloak-oauth-keycloak.apps.sno.zagaopensource.com/realms/sovereign/protocol/openid-connect/token"
-"
         payload = {
             "grant_type": "client_credentials",
             "client_id": "trino",
