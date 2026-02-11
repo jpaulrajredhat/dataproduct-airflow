@@ -281,32 +281,35 @@ def insert_into_iceberg():
         # Wrap values in parentheses: (val1, val2, ...)
     #    all_rows.append(f"({','.join(values)})")
 
-    # 1. Fetch metadata and create a lookup dictionary
+    # 1. Map columns to types
     cursor.execute("DESCRIBE iceberg.single_family.loans")
-    # Trino DESCRIBE returns: [Column, Type, Extra, Comment]
+    # metadata lookup: { 'column_name': 'type' }
     columns_metadata = {row[0]: row[1] for row in cursor.fetchall()}
     
-    # 2. Build the Batch Insert
     all_rows = []
     for _, row in df.iterrows():
         values = []
         for col_name in df.columns:
             val = row[col_name]
-            # Get the Trino type from our lookup dict
-            target_type = columns_metadata.get(col_name, "varchar").lower()
+            dtype = columns_metadata.get(col_name, 'varchar')
             
+            # Handle NULLs (Crucial: NULL must be casted)
             if pd.isna(val):
-                values.append(f"CAST(NULL AS {target_type})")
-            elif "timestamp" in target_type:
-                # Format: TIMESTAMP 'YYYY-MM-DD HH:MM:SS.mmm'
-                ts_str = pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-                values.append(f"TIMESTAMP '{ts_str}'")
-            elif any(t in target_type for t in ["double", "bigint", "integer", "real"]):
-                values.append(str(val))
+                values.append(f"CAST(NULL AS {dtype})")
+            
+            # Handle Timestamps
+            elif "timestamp" in dtype:
+                ts_str = pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S.%f')
+                values.append(f"CAST(TIMESTAMP '{ts_str}' AS {dtype})")
+            
+            # Handle Numeric (double, bigint, etc.)
+            elif any(t in dtype for t in ["double", "bigint", "integer", "real", "decimal"]):
+                values.append(f"CAST({val} AS {dtype})")
+                
+            # Handle Strings/Varchars
             else:
-                # String/Varchar escaping
                 clean_val = str(val).replace("'", "''")
-                values.append(f"'{clean_val}'")
+                values.append(f"CAST('{clean_val}' AS {dtype})")
                 
         all_rows.append(f"({','.join(values)})")
     # 3. Execute as ONE transaction
