@@ -321,7 +321,7 @@ def insert_into_iceberg():
     target_cols = ",".join([c.lower() for c in df.columns])
     for chunk in np.array_split(all_rows, max(1, len(all_rows) // 500)):
         if len(chunk) > 0:
-            insert_sql = f"INSERT INTO {table_name} ({target_cols}) VALUES {','.join(chunk)}"
+            insert_sql = f"INSERT INTO iceberg.single_family.loans ({target_cols}) VALUES {','.join(chunk)}"
             cursor.execute(insert_sql)
             print(f"Inserted chunk of {len(chunk)} rows.")
 
