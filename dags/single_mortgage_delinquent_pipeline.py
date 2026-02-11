@@ -17,6 +17,7 @@ import urllib3
 from trino.dbapi import connect
 from trino.auth import JWTAuthentication
 from trino.auth import OAuth2Authentication
+import numpy as np
 
 
 # Per your setup
