@@ -264,23 +264,49 @@ def insert_into_iceberg():
     #    sql = f"INSERT INTO iceberg.single_family.loans VALUES ({','.join(values)})"
     #    cursor.execute(sql)
 
-    all_rows = []
+    # all_rows = []
 
-    for _, row in df.iterrows():
-        values = []
-        for val in row:
-            if pd.isna(val):
-                values.append("NULL")
-            elif isinstance(val, (str, pd.Timestamp)):
+    # for _, row in df.iterrows():
+    #    values = []
+    #    for val in row:
+    #        if pd.isna(val):
+    #            values.append("NULL")
+    #        elif isinstance(val, (str, pd.Timestamp)):
                 # Escaping single quotes and formatting strings/dates
-                clean_val = str(val).replace("'", "''")
-                values.append(f"'{clean_val}'")
-            else:
-                values.append(str(val))
+    #            clean_val = str(val).replace("'", "''")
+    #            values.append(f"'{clean_val}'")
+    #        else:
+    #            values.append(str(val))
         
         # Wrap values in parentheses: (val1, val2, ...)
-        all_rows.append(f"({','.join(values)})")
+    #    all_rows.append(f"({','.join(values)})")
 
+    # 1. Get column types from the table to map them
+    cursor.execute("DESCRIBE iceberg.single_family.loans")
+    columns_metadata = cursor.fetchall()
+    # columns_metadata format: [('col_name', 'type', ...), ...]
+    
+    # 2. Build the Batch Insert with Explicit Casts
+    all_rows = []
+    for _, row in df.iterrows():
+        values = []
+        for i, val in enumerate(row):
+            target_type = columns_metadata[i][1] # e.g., 'double', 'timestamp(6)'
+            
+            if pd.isna(val):
+                # Trino needs to know WHAT kind of NULL it is
+                values.append(f"CAST(NULL AS {target_type})")
+            elif "timestamp" in target_type:
+                ts_val = pd.to_timestamp(val).strftime('%Y-%m-%d %H:%M:%S.%f')
+                values.append(f"TIMESTAMP '{ts_val}'")
+            elif "double" in target_type or "bigint" in target_type:
+                values.append(str(val))
+            else:
+                # Escape strings
+                clean_val = str(val).replace("'", "''")
+                values.append(f"'{clean_val}'")
+                
+        all_rows.append(f"({','.join(values)})")
         # 3. Execute as ONE transaction
         if all_rows:
             # Join all rows with commas: VALUES (row1), (row2), (row3)
