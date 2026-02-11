@@ -285,7 +285,7 @@ def insert_into_iceberg():
     # cursor.execute("DESCRIBE iceberg.single_family.loans")
     # Map name -> type (e.g., {'loan_id': 'bigint'})
     # columns_metadata = {row[0].lower(): row[1].lower() for row in cursor.fetchall()}
-    cursor.execute(f"DESCRIBE {table_name}")
+    cursor.execute("DESCRIBE iceberg.single_family.loans")
     meta_rows = cursor.fetchall()
     if not meta_rows:
         raise RuntimeError("OPA denied metadata access! Check 'FilterColumns' permission.")
