@@ -281,42 +281,44 @@ def insert_into_iceberg():
         # Wrap values in parentheses: (val1, val2, ...)
     #    all_rows.append(f"({','.join(values)})")
 
-    # 1. Get column types from the table to map them
+    # 1. Fetch metadata and create a lookup dictionary
     cursor.execute("DESCRIBE iceberg.single_family.loans")
-    columns_metadata = cursor.fetchall()
-    # columns_metadata format: [('col_name', 'type', ...), ...]
+    # Trino DESCRIBE returns: [Column, Type, Extra, Comment]
+    columns_metadata = {row[0]: row[1] for row in cursor.fetchall()}
     
-    # 2. Build the Batch Insert with Explicit Casts
+    # 2. Build the Batch Insert
     all_rows = []
     for _, row in df.iterrows():
         values = []
-        for i, val in enumerate(row):
-            target_type = columns_metadata[i][1] # e.g., 'double', 'timestamp(6)'
+        for col_name in df.columns:
+            val = row[col_name]
+            # Get the Trino type from our lookup dict
+            target_type = columns_metadata.get(col_name, "varchar").lower()
             
             if pd.isna(val):
-                # Trino needs to know WHAT kind of NULL it is
                 values.append(f"CAST(NULL AS {target_type})")
             elif "timestamp" in target_type:
-                ts_val = pd.to_timestamp(val).strftime('%Y-%m-%d %H:%M:%S.%f')
-                values.append(f"TIMESTAMP '{ts_val}'")
-            elif "double" in target_type or "bigint" in target_type:
+                # Format: TIMESTAMP 'YYYY-MM-DD HH:MM:SS.mmm'
+                ts_str = pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                values.append(f"TIMESTAMP '{ts_str}'")
+            elif any(t in target_type for t in ["double", "bigint", "integer", "real"]):
                 values.append(str(val))
             else:
-                # Escape strings
+                # String/Varchar escaping
                 clean_val = str(val).replace("'", "''")
                 values.append(f"'{clean_val}'")
                 
         all_rows.append(f"({','.join(values)})")
-        # 3. Execute as ONE transaction
-        if all_rows:
-            # Join all rows with commas: VALUES (row1), (row2), (row3)
-            insert_sql = f"INSERT INTO iceberg.single_family.loans VALUES {','.join(all_rows)}"
-            
-            try:
-                cursor.execute(insert_sql)
-                print(f"Successfully inserted {len(all_rows)} rows.")
-            except Exception as e:
-                print(f"Insert failed: {e}")
+    # 3. Execute as ONE transaction
+    if all_rows:
+        # Join all rows with commas: VALUES (row1), (row2), (row3)
+        insert_sql = f"INSERT INTO iceberg.single_family.loans VALUES {','.join(all_rows)}"
+        
+        try:
+            cursor.execute(insert_sql)
+            print(f"Successfully inserted {len(all_rows)} rows.")
+        except Exception as e:
+            print(f"Insert failed: {e}")
 
 # -------- DAG Definition -------- #
 with DAG(
