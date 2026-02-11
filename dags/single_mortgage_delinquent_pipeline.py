@@ -282,47 +282,49 @@ def insert_into_iceberg():
     #    all_rows.append(f"({','.join(values)})")
 
     # 1. Fetch metadata and force keys to lowercase
-    cursor.execute("DESCRIBE iceberg.single_family.loans")
+    # cursor.execute("DESCRIBE iceberg.single_family.loans")
     # Map name -> type (e.g., {'loan_id': 'bigint'})
-    columns_metadata = {row[0].lower(): row[1].lower() for row in cursor.fetchall()}
+    # columns_metadata = {row[0].lower(): row[1].lower() for row in cursor.fetchall()}
+    cursor.execute(f"DESCRIBE {table_name}")
+    meta_rows = cursor.fetchall()
+    if not meta_rows:
+        raise RuntimeError("OPA denied metadata access! Check 'FilterColumns' permission.")
+    
+    # Map lowercase col names to types: {'loan_id': 'bigint'}
+    col_to_type = {row[0].lower(): row[1].lower() for row in meta_rows}
     all_rows = []
     for _, row in df.iterrows():
-        values = []
+        sql_values = []
         for col_name in df.columns:
             val = row[col_name]
-            # Look up using lowercase name
-            dtype = columns_metadata.get(col_name.lower())
+            dtype = col_to_type.get(col_name.lower(), "varchar")
             
-            if not dtype:
-                raise ValueError(f"Column '{col_name}' not found in Iceberg table. Available: {list(columns_metadata.keys())}")
-    
-            # Construct the CAST for every single value
+            # Format value based on type
             if pd.isna(val):
-                formatted_val = "NULL"
+                f_val = "NULL"
             elif "timestamp" in dtype:
-                ts_str = pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S.%f')
-                formatted_val = f"TIMESTAMP '{ts_str}'"
-            elif any(t in dtype for t in ["double", "bigint", "integer", "real", "decimal"]):
-                formatted_val = str(val)
+                ts = pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S.%f')
+                f_val = f"TIMESTAMP '{ts}'"
+            elif any(t in dtype for t in ["double", "bigint", "int", "decimal"]):
+                f_val = str(val)
             else:
-                # String/Varchar escaping
-                clean_val = str(val).replace("'", "''")
-                formatted_val = f"'{clean_val}'"
-                
-            # Every value MUST be wrapped in a CAST to satisfy Trino's strict typing
-            values.append(f"CAST({formatted_val} AS {dtype})")
-                
-        all_rows.append(f"({','.join(values)})")
-    # 3. Execute as ONE transaction
-    if all_rows:
-        # Join all rows with commas: VALUES (row1), (row2), (row3)
-        insert_sql = f"INSERT INTO iceberg.single_family.loans VALUES {','.join(all_rows)}"
+                clean_str = str(val).replace("'", "''")
+                f_val = f"'{clean_str}'"
+            
+            # Wrap in CAST to satisfy Trino Type Matching
+            sql_values.append(f"CAST({f_val} AS {dtype})")
         
-        try:
+        all_rows.append(f"({','.join(sql_values)})")
+
+    # 5. Execute in Chunks of 500 to prevent Coordinator timeouts
+    target_cols = ",".join([c.lower() for c in df.columns])
+    for chunk in np.array_split(all_rows, max(1, len(all_rows) // 500)):
+        if len(chunk) > 0:
+            insert_sql = f"INSERT INTO {table_name} ({target_cols}) VALUES {','.join(chunk)}"
             cursor.execute(insert_sql)
-            print(f"Successfully inserted {len(all_rows)} rows.")
-        except Exception as e:
-            print(f"Insert failed: {e}")
+            print(f"Inserted chunk of {len(chunk)} rows.")
+
+    
 
 # -------- DAG Definition -------- #
 with DAG(
