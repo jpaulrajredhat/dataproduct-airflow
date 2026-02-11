@@ -281,35 +281,32 @@ def insert_into_iceberg():
         # Wrap values in parentheses: (val1, val2, ...)
     #    all_rows.append(f"({','.join(values)})")
 
-    # 1. Map columns to types
-    cursor.execute("DESCRIBE iceberg.single_family.loans")
-    # metadata lookup: { 'column_name': 'type' }
-    columns_metadata = {row[0]: row[1] for row in cursor.fetchall()}
-    
     all_rows = []
     for _, row in df.iterrows():
         values = []
         for col_name in df.columns:
             val = row[col_name]
-            dtype = columns_metadata.get(col_name, 'varchar')
+            # Look up using lowercase name
+            dtype = columns_metadata.get(col_name.lower())
             
-            # Handle NULLs (Crucial: NULL must be casted)
+            if not dtype:
+                raise ValueError(f"Column '{col_name}' not found in Iceberg table. Available: {list(columns_metadata.keys())}")
+    
+            # Construct the CAST for every single value
             if pd.isna(val):
-                values.append(f"CAST(NULL AS {dtype})")
-            
-            # Handle Timestamps
+                formatted_val = "NULL"
             elif "timestamp" in dtype:
                 ts_str = pd.to_datetime(val).strftime('%Y-%m-%d %H:%M:%S.%f')
-                values.append(f"CAST(TIMESTAMP '{ts_str}' AS {dtype})")
-            
-            # Handle Numeric (double, bigint, etc.)
+                formatted_val = f"TIMESTAMP '{ts_str}'"
             elif any(t in dtype for t in ["double", "bigint", "integer", "real", "decimal"]):
-                values.append(f"CAST({val} AS {dtype})")
-                
-            # Handle Strings/Varchars
+                formatted_val = str(val)
             else:
+                # String/Varchar escaping
                 clean_val = str(val).replace("'", "''")
-                values.append(f"CAST('{clean_val}' AS {dtype})")
+                formatted_val = f"'{clean_val}'"
+                
+            # Every value MUST be wrapped in a CAST to satisfy Trino's strict typing
+            values.append(f"CAST({formatted_val} AS {dtype})")
                 
         all_rows.append(f"({','.join(values)})")
     # 3. Execute as ONE transaction
