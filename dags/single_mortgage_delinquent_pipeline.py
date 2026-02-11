@@ -281,6 +281,10 @@ def insert_into_iceberg():
         # Wrap values in parentheses: (val1, val2, ...)
     #    all_rows.append(f"({','.join(values)})")
 
+    # 1. Fetch metadata and force keys to lowercase
+    cursor.execute("DESCRIBE iceberg.single_family.loans")
+    # Map name -> type (e.g., {'loan_id': 'bigint'})
+    columns_metadata = {row[0].lower(): row[1].lower() for row in cursor.fetchall()}
     all_rows = []
     for _, row in df.iterrows():
         values = []
