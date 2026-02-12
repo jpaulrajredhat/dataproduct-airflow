@@ -36,7 +36,7 @@ OAUTH_URL = os.environ.get("OAUTH_URL")
 OAUTH_CLIENT_ID = os.environ.get("CLIENT_ID", "trino")
 OAUTH_CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "1z47wp2T746BvzAVF9U8mBGFDi1nTKr9")
 OAUTH_USER_NAME = os.environ.get("USER_NAME", "admin")
-OAUTH_PASSWORD = os.environ.get("PASSWORD", "admin")
+OAUTH_PASSWORD = os.environ.get("PASSWORD", "Redhat2026$")
 
 # -------- Required Columns -------- #
 REQUIRED_COLUMNS = [
