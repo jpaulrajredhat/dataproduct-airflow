@@ -37,6 +37,7 @@ OAUTH_CLIENT_ID = os.environ.get("CLIENT_ID", "trino")
 OAUTH_CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "1z47wp2T746BvzAVF9U8mBGFDi1nTKr9")
 OAUTH_USER_NAME = os.environ.get("USER_NAME", "admin")
 OAUTH_PASSWORD = os.environ.get("PASSWORD", "Redhat2026$")
+TRINO_HOST = os.environ.get("TRINO_HOST")
 
 # -------- Required Columns -------- #
 REQUIRED_COLUMNS = [
@@ -88,7 +89,7 @@ def get_trino_connection(use_keycloak=False):
     """
     # Standard connection parameters
     conn_params = {
-        "host": "trino-datamesh.apps.sno.zagaopensource.com",
+        "host": TRINO_HOST,
         "catalog": "iceberg",
         "schema": "single_family",
     }
