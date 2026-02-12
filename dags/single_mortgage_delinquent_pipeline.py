@@ -31,6 +31,13 @@ S3_BUCKET = "mortgage"
 S3_KEY = "single_family.parquet"
 RAW_XLS_KEY = "raw-data/single_family/single_family.xlsx"
 PARQUET_S3_KEY = "processed-data/single_family.parquet"
+
+OAUTH_URL = os.environ.get("OAUTH_URL")
+OAUTH_CLIENT_ID = os.environ.get("CLIENT_ID", "trino")
+OAUTH_CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "1z47wp2T746BvzAVF9U8mBGFDi1nTKr9")
+OAUTH_USER_NAME = os.environ.get("USER_NAME", "admin")
+OAUTH_PASSWORD = os.environ.get("PASSWORD", "admin")
+
 # -------- Required Columns -------- #
 REQUIRED_COLUMNS = [
     "Reference Pool ID", "Loan Identifier", "Monthly Reporting Period", "Channel",
@@ -88,18 +95,18 @@ def get_trino_connection(use_keycloak=False):
 
     if use_keycloak:
         # 1. Exchange Client Secret for a JWT Token
-        # Update these URLs/Credentials to your environment
-        token_url =  "https://keycloak-oauth-keycloak.apps.sno.zagaopensource.com/realms/sovereign/protocol/openid-connect/token"
+        # Update these URLs/Credentials to your environment        
+
         payload = {
             "grant_type": "password",
-            # "grant_type": "client_credentials",
-            "client_id": "trino",
-            "client_secret": "YgKIRgW0f7hQNq0lGpWJ5X9trov1xI7b",
-            "username": "admin",
-            "password": "Redhat2026$"
+            "client_id": OAUTH_CLIENT_ID,
+            "client_secret": OAUTH_CLIENT_SECRET,
+            "username": OAUTH_USER_NAME,
+            "password": OAUTH_PASSWORD
         }
+     
         
-        response = requests.post(token_url, data=payload, verify=False)
+        response = requests.post(OAUTH_URL, data=payload, verify=False)
         response.raise_for_status()
         token = response.json().get("access_token")
 
