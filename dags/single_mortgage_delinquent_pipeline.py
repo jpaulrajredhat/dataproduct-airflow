@@ -39,6 +39,8 @@ OAUTH_USER_NAME = os.environ.get("OAUTH_USER_NAME", "admin")
 OAUTH_PASSWORD = os.environ.get("OAUTH_PASSWORD", "Redhat2026$")
 TRINO_HOST = os.environ.get("TRINO_HOST")
 
+print("DEBUG OAUTH_URL-1:", OAUTH_URL)
+
 # -------- Required Columns -------- #
 REQUIRED_COLUMNS = [
     "Reference Pool ID", "Loan Identifier", "Monthly Reporting Period", "Channel",
@@ -106,7 +108,7 @@ def get_trino_connection(use_keycloak=False):
             "password": OAUTH_PASSWORD
         }
      
-        
+        print("DEBUG OAUTH_URL-2:", OAUTH_URL)
         response = requests.post(OAUTH_URL, data=payload, verify=False)
         response.raise_for_status()
         token = response.json().get("access_token")
