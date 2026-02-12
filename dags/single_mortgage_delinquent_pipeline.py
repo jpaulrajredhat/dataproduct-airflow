@@ -32,14 +32,7 @@ S3_KEY = "single_family.parquet"
 RAW_XLS_KEY = "raw-data/single_family/single_family.xlsx"
 PARQUET_S3_KEY = "processed-data/single_family.parquet"
 
-OAUTH_URL = os.environ.get("OAUTH_URL")
-OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "trino")
-OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "1z47wp2T746BvzAVF9U8mBGFDi1nTKr9")
-OAUTH_USER_NAME = os.environ.get("OAUTH_USER_NAME", "admin")
-OAUTH_PASSWORD = os.environ.get("OAUTH_PASSWORD", "Redhat2026$")
-TRINO_HOST = os.environ.get("TRINO_HOST")
 
-print("DEBUG OAUTH_URL-1:", OAUTH_URL)
 
 # -------- Required Columns -------- #
 REQUIRED_COLUMNS = [
@@ -90,6 +83,15 @@ def get_trino_connection(use_keycloak=False):
     Utility to switch between standard and Keycloak authentication.
     """
     # Standard connection parameters
+    OAUTH_URL = os.environ.get("OAUTH_URL")
+    OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "trino")
+    OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "1z47wp2T746BvzAVF9U8mBGFDi1nTKr9")
+    OAUTH_USER_NAME = os.environ.get("OAUTH_USER_NAME", "admin")
+    OAUTH_PASSWORD = os.environ.get("OAUTH_PASSWORD", "Redhat2026$")
+    TRINO_HOST = os.environ.get("TRINO_HOST")
+
+    print("DEBUG OAUTH_URL-1:", OAUTH_URL)
+    
     conn_params = {
         "host": TRINO_HOST,
         "catalog": "iceberg",
