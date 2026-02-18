@@ -114,7 +114,7 @@ def get_trino_connection(use_keycloak=False):
         response = requests.post(OAUTH_URL, data=payload, verify=False)
         response.raise_for_status()
         token = response.json().get("access_token")
-
+        print("DEBUG token-2:", token)
         # 2. Update params for Secure JWT connection
         conn_params.update({
             "port": 443,
