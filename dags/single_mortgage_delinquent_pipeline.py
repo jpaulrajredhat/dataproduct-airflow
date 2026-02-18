@@ -114,7 +114,18 @@ def get_trino_connection(use_keycloak=False):
         print("DEBUG OAUTH_URL-2:", OAUTH_URL)
         print("DEBUG OAUTH_CLIENT_ID-2:", OAUTH_CLIENT_ID)
         print("DEBUG OAUTH_CLIENT_SECRET-2:", OAUTH_CLIENT_SECRET)
-        response = requests.post(OAUTH_URL, data=payload, verify=False)
+        # response = requests.post(OAUTH_URL, data=payload, verify=False)
+
+        response = requests.post(
+            OAUTH_URL,
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            verify=False
+        )
+
+        print("STATUS:", response.status_code)
+        print("BODY:", response.text)
+
         response.raise_for_status()
         token = response.json().get("access_token")
         print("DEBUG token-2:", token)
