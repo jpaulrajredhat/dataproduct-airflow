@@ -103,12 +103,12 @@ def get_trino_connection(use_keycloak=False):
         # Update these URLs/Credentials to your environment        
 
         payload = {
-            # "grant_type": "password",
-            "grant_type": "client_credentials",
+            "grant_type": "password",
+            # "grant_type": "client_credentials",
             "client_id": OAUTH_CLIENT_ID,
             "client_secret": OAUTH_CLIENT_SECRET,
-            # "username": OAUTH_USER_NAME,
-            # "password": OAUTH_PASSWORD
+            "username": OAUTH_USER_NAME,
+            "password": OAUTH_PASSWORD
         }
      
         print("DEBUG OAUTH_URL-2:", OAUTH_URL)
