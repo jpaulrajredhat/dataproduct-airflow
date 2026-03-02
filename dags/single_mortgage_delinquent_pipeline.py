@@ -32,9 +32,9 @@ S3_KEY = "single_family.parquet"
 RAW_XLS_KEY = "raw-data/single_family/single_family.xlsx"
 PARQUET_S3_KEY = "processed-data/single_family.parquet"
 
-OAUTH_URL = os.environ.get("OAUTH_URL")
+OAUTH_URL = os.environ.get("OAUTH_URL","https://keycloak-oauth-keycloak.apps.ocp.7m7k7.sandbox3664.opentlc.com/realms/sovereign/protocol/openid-connect/token")
 OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "trino")
-OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "1z47wp2T746BvzAVF9U8mBGFDi1nTKr9")
+OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "xsfAval71HudEMtx8py0v52PrcwAGQau")
 OAUTH_USER_NAME = os.environ.get("OAUTH_USER_NAME", "admin")
 OAUTH_PASSWORD = os.environ.get("OAUTH_PASSWORD", "Redhat2026$")
 TRINO_HOST = os.environ.get("TRINO_HOST")
