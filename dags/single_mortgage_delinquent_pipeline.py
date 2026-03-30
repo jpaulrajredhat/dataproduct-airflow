@@ -37,7 +37,7 @@ OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "trino")
 OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "EyxK5moeRzprovZYrv2ENUUK4Ur7pfA6")
 OAUTH_USER_NAME = os.environ.get("OAUTH_USER_NAME", "admin")
 OAUTH_PASSWORD = os.environ.get("OAUTH_PASSWORD", "Redhat2026$")
-TRINO_HOST = os.environ.get("TRINO_HOST", "trino-datamesh.apps.ocp.7m7k7.sandbox3664.opentlc.com")
+TRINO_HOST = os.environ.get("TRINO_HOST", "trino-datamesh.apps.ocp.kc2p5.sandbox2034.opentlc.com")
 
 print("DEBUG OAUTH_URL-1:", OAUTH_URL)
     
