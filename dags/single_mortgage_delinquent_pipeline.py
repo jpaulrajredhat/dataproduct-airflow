@@ -263,7 +263,7 @@ def transform_and_upload():
 
 def insert_into_iceberg():
     # conn = connect(host="trino", port=8080, user="admin", catalog="iceberg")
-    conn = get_trino_connection(use_keycloak=True)
+    conn = get_trino_connection(use_keycloak=False)
 
     cursor = conn.cursor()
     cursor.execute("CREATE SCHEMA IF NOT EXISTS iceberg.single_family")
