@@ -38,8 +38,10 @@ OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "EyxK5moeRzprovZYrv2
 OAUTH_USER_NAME = os.environ.get("OAUTH_USER_NAME", "admin")
 OAUTH_PASSWORD = os.environ.get("OAUTH_PASSWORD", "Redhat2026$")
 TRINO_HOST = os.environ.get("TRINO_HOST", "trino.datamesh.svc.cluster.local")
-
+OAUTH_ENABLED = os.getenv("OAUTH_ENABLED", "false").lower() == "true"
 print("DEBUG OAUTH_URL-1:", OAUTH_URL)
+print("OAUTH_ENABLED:", OAUTH_ENABLED)
+
     
 
 # -------- Required Columns -------- #
@@ -86,7 +88,7 @@ def convert_mm_yyyy_to_date(value):
         return None
 
 
-def get_trino_connection(use_keycloak=False):
+def get_trino_connection():
     """
     Utility to switch between standard and Keycloak authentication.
     """
@@ -98,7 +100,7 @@ def get_trino_connection(use_keycloak=False):
         "schema": "single_family",
     }
 
-    if use_keycloak:
+    if OAUTH_ENABLED:
         # 1. Exchange Client Secret for a JWT Token
         # Update these URLs/Credentials to your environment        
 
@@ -263,7 +265,7 @@ def transform_and_upload():
 
 def insert_into_iceberg():
     # conn = connect(host="trino", port=8080, user="admin", catalog="iceberg")
-    conn = get_trino_connection(use_keycloak=False)
+    conn = get_trino_connection()
 
     cursor = conn.cursor()
     cursor.execute("CREATE SCHEMA IF NOT EXISTS iceberg.single_family")
