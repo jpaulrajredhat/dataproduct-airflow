@@ -2,46 +2,40 @@
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
 name: Deploy to S3
+
 on:
   push:
     branches:
-      - main  # adjust this to your main branch 
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Deploy to MinIO Bucket
+      - name: Sync DAGs and mortgage files to MinIO
         env:
-          MC_DEBUG: 1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_EC2_METADATA_DISABLED: 'true'
+          S3_ENDPOINT: ${{ secrets.S3_SNO_URL }}
         run: |
-          # Set up MinIO client (mc)
-          wget https://dl.min.io/client/mc/release/linux-amd64/mc
-          chmod +x mc
-          
-          # Configure MinIO client with access credentials
-          ./mc alias set oscicd ${{secrets.S3_SNO_URL}} ${{ secrets.AWS_ACCESS_KEY_ID }} ${{ secrets.AWS_SECRET_ACCESS_KEY }} --insecure --api S3v4
-          
-          # Copy files to MinIO bucket
-          # ./mc mirror ./dags/ oscicd/airflow/release/dags --insecure 
-          # ./mc mirror --remove --overwrite ./dags/ oscicd/airflow/release/dags --insecure
-          ./mc mirror --remove --overwrite ./dags/ oscicd/airflow/dags --insecure
-          ./mc mirror --remove --overwrite ./mortgage/ oscicd/mortgage --insecure
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v1
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: 
+          set -euo pipefail
 
-      # - name: Deploy to S3
-      #   uses: aws-actions/amazon-s3-deploy@v0.1.1
-      #   with:
-      #     args: --acl public-read --follow-symlinks --delete
-      #     bucket-name: airflow/release/dags
-      #     local-dir: dags
-      #     include: '*.py, *.ipynb'
-      #     exclude: '*.tmp, config.yml'
+          # GitHub-hosted Ubuntu runners generally have AWS CLI preinstalled.
+          if ! command -v aws >/dev/null 2>&1; then
+            python3 -m pip install --user awscli
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+          aws --version
+
+          # OpenShift Route: use path-style S3 URLs instead of bucket subdomains.
+          aws configure set default.s3.addressing_style path
+
+          # S3_SNO_URL must point to the MinIO S3 API endpoint (not the console).
+          # AWS CLI sync --delete mirrors the old mc mirror --remove behavior.
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync ./dags/ s3://airflow/dags/ --delete --no-progress
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync ./mortgage/ s3://mortgage/ --delete --no-progress
