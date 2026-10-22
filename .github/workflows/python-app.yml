@@ -5,7 +5,7 @@ name: Deploy to S3
 on:
   push:
     branches:
-      - main  # adjust this to your main branch name
+      - main  # adjust this to your main branch 
 
 jobs:
   deploy:
