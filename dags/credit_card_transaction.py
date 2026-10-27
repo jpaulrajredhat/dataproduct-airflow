@@ -22,7 +22,7 @@ def generate_insert_sql(table_name, n_rows=10):
     for _ in range(n_rows):
 
         # 1. Randomly pick one of your three regions
-        reg_code = random.choice(["UE", "IN", "NA"])
+        reg_code = random.choice(["EU", "IN", "NA"])
         region_data = region_map[reg_code]
         
         # 2. Pick a country and currency based on that region
