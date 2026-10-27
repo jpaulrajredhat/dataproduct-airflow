@@ -14,7 +14,7 @@ merchant_categories = ['RESTAURANTS', 'ELECTRONICS', 'TRAVEL', 'FUEL', 'GROCERY'
 # Function to generate SQL for synthetic credit card transactions
 def generate_insert_sql(table_name, n_rows=10):
     region_map = {
-        "UE": {"countries": ["DE", "FR", "IT", "ES"], "currency": "EUR"},
+        "EU": {"countries": ["DE", "FR", "IT", "ES"], "currency": "EUR"},
         "IN": {"countries": ["IN"], "currency": "INR"},
         "NA": {"countries": ["US", "CA", "MX"], "currency": "USD"}
     }
